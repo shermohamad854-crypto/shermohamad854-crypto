@@ -58,3 +58,16 @@ export interface UserProfile {
   displayName?: string;
   photoURL?: string;
 }
+
+export interface Vehicle {
+  id: string;
+  vehicleNumber: string;
+  vehicleName: string;
+  nocUrl?: string;
+  driverName: string;
+  driverContact: string;
+  assignmentDate: string;
+  approvedBy: string;
+  handoverDate?: string;
+  status: 'active' | 'maintenance' | 'retired';
+}

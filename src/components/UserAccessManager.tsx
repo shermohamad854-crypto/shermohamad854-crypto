@@ -100,7 +100,11 @@ export default function UserAccessManager() {
       setNewUser({ email: '', password: '', role: 'employee', displayName: '' });
     } catch (error: any) {
       console.error('Error creating user:', error);
-      toast.error(error.message || 'Failed to create user');
+      if (error.code === 'auth/operation-not-allowed') {
+        toast.error('Email/Password authentication is not enabled in the Firebase Console. Please enable it in Authentication > Sign-in method.');
+      } else {
+        toast.error(error.message || 'Failed to create user');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -139,10 +143,8 @@ export default function UserAccessManager() {
           <p className="text-sm text-slate-500">Manage system roles and permissions</p>
         </div>
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-          <DialogTrigger asChild>
-            <Button className="h-10">
-              <UserPlus className="w-4 h-4 mr-2" /> Add New User
-            </Button>
+          <DialogTrigger render={<Button className="h-10" />}>
+            <UserPlus className="w-4 h-4 mr-2" /> Add New User
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -269,7 +271,7 @@ export default function UserAccessManager() {
                 </TableCell>
                 <TableCell>
                   <Select 
-                    defaultValue={user.role} 
+                    value={user.role} 
                     onValueChange={(v: any) => updateUserRole(user.id, v)}
                   >
                     <SelectTrigger className="w-32 h-9">

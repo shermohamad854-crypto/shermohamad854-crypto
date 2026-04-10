@@ -105,10 +105,8 @@ export default function TaskManager() {
       <div className="flex justify-between items-center">
         <h3 className="text-2xl font-bold text-slate-800">Tasks</h3>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="h-11">
-              <Plus className="mr-2 w-4 h-4" /> New Task
-            </Button>
+          <DialogTrigger render={<Button className="h-11" />}>
+            <Plus className="mr-2 w-4 h-4" /> New Task
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

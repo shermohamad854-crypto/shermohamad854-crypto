@@ -25,7 +25,8 @@ import {
   Package,
   Mail,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Car
 } from 'lucide-react';
 import EmployeeList from './components/EmployeeList';
 import AttendanceTracker from './components/AttendanceTracker';
@@ -36,6 +37,7 @@ import ReportingDashboard from './components/ReportingDashboard';
 import AdminPanel from './components/AdminPanel';
 import InventoryManager from './components/InventoryManager';
 import UserProfileView from './components/UserProfileView';
+import VehicleManager from './components/VehicleManager';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
@@ -60,20 +62,26 @@ export default function App() {
       if (user) {
         // Check if user profile exists, if not create it
         const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (!userSnap.exists()) {
-          const isDefaultAdmin = user.email === "shermohamad854@gmail.com";
-          const newProfile = {
-            email: user.email,
-            role: isDefaultAdmin ? 'admin' : 'employee',
-            displayName: user.displayName || user.email?.split('@')[0] || 'New User',
-            photoURL: user.photoURL || ''
-          };
-          await setDoc(userRef, newProfile);
-          setUserProfile({ id: user.uid, ...newProfile } as UserProfile);
-        } else {
-          setUserProfile({ id: userSnap.id, ...userSnap.data() } as UserProfile);
+        try {
+          const userSnap = await getDoc(userRef);
+          
+          if (!userSnap.exists()) {
+            const isDefaultAdmin = user.email === "shermohamad854@gmail.com";
+            const newProfile = {
+              email: user.email,
+              role: isDefaultAdmin ? 'admin' : 'employee',
+              displayName: user.displayName || user.email?.split('@')[0] || 'New User',
+              photoURL: user.photoURL || ''
+            };
+            await setDoc(userRef, newProfile);
+            setUserProfile({ id: user.uid, ...newProfile } as UserProfile);
+          } else {
+            setUserProfile({ id: userSnap.id, ...userSnap.data() } as UserProfile);
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          // If we can't read the profile yet (e.g. rules propagation delay), 
+          // we'll rely on the onSnapshot listener below which has its own error handling
         }
 
         // Listen for profile changes (role updates)
@@ -232,6 +240,7 @@ export default function App() {
     { id: 'employees', label: 'Employees', icon: Users, roles: ['admin', 'hr', 'manager'] },
     { id: 'attendance', label: 'Attendance', icon: Calendar, roles: ['admin', 'hr', 'manager', 'employee'] },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare, roles: ['admin', 'hr', 'manager', 'employee'] },
+    { id: 'vehicles', label: 'Vehicles', icon: Car, roles: ['admin', 'hr', 'manager'] },
     { id: 'payroll', label: 'Payroll', icon: CreditCard, roles: ['admin', 'hr', 'employee'] },
     { id: 'inventory', label: 'Inventory', icon: Package, roles: ['admin', 'hr', 'manager'] },
     { id: 'reporting', label: 'Reporting', icon: BarChart3, roles: ['admin', 'hr'] },
@@ -338,6 +347,7 @@ export default function App() {
               {activeTab === 'tasks' && <TaskManager />}
               {activeTab === 'payroll' && <PayrollManager />}
               {activeTab === 'inventory' && <InventoryManager />}
+              {activeTab === 'vehicles' && <VehicleManager />}
               {activeTab === 'reporting' && <ReportingDashboard />}
               {activeTab === 'profile' && userProfile && <UserProfileView profile={userProfile} />}
               {activeTab === 'admin' && <AdminPanel />}

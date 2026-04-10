@@ -84,6 +84,23 @@
         "photoURL": { "type": "string" }
       },
       "required": ["email", "role"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Company vehicle and its assignment details",
+      "type": "object",
+      "properties": {
+        "vehicleNumber": { "type": "string" },
+        "vehicleName": { "type": "string" },
+        "nocUrl": { "type": "string", "format": "uri", "description": "URL to the uploaded NOC document" },
+        "driverName": { "type": "string" },
+        "driverContact": { "type": "string" },
+        "assignmentDate": { "type": "string", "format": "date" },
+        "approvedBy": { "type": "string", "description": "Name of the person who approved the assignment" },
+        "handoverDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["active", "maintenance", "retired"] }
+      },
+      "required": ["vehicleNumber", "vehicleName", "driverName", "driverContact", "assignmentDate", "approvedBy", "status"]
     }
   },
   "firestore": {
@@ -110,6 +127,10 @@
     "/inventory/{itemId}": {
       "schema": "InventoryItem",
       "description": "Company assets and inventory"
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": "Vehicle",
+      "description": "Collection of company vehicles"
     },
     "/settings/{settingId}": {
       "schema": "object",

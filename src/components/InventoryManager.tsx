@@ -95,10 +95,8 @@ export default function InventoryManager() {
           <p className="text-slate-500">Track company assets and equipment</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="h-11">
-              <Plus className="mr-2 w-4 h-4" /> Add Item
-            </Button>
+          <DialogTrigger render={<Button className="h-11" />}>
+            <Plus className="mr-2 w-4 h-4" /> Add Item
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
