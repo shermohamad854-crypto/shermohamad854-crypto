@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "A staff member of the organization",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the employee" },
+        "email": { "type": "string", "format": "email", "description": "Work email" },
+        "role": { "type": "string", "description": "Job title" },
+        "department": { "type": "string", "description": "Department name" },
+        "joinDate": { "type": "string", "format": "date", "description": "Date of joining" },
+        "salary": { "type": "number", "description": "Monthly base salary" },
+        "status": { "type": "string", "enum": ["active", "on-leave", "terminated"], "description": "Current employment status" },
+        "photoURL": { "type": "string", "format": "uri", "description": "Profile picture URL" }
+      },
+      "required": ["name", "email", "role", "department", "status"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Daily attendance record for an employee",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string", "description": "Reference to Employee document ID" },
+        "date": { "type": "string", "format": "date", "description": "Date of record" },
+        "checkIn": { "type": "string", "format": "date-time", "description": "Check-in time" },
+        "checkOut": { "type": "string", "format": "date-time", "description": "Check-out time" },
+        "status": { "type": "string", "enum": ["present", "absent", "late", "half-day"], "description": "Attendance status" }
+      },
+      "required": ["employeeId", "date", "status"]
+    },
+    "Payroll": {
+      "title": "Payroll",
+      "description": "Monthly payroll record",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string", "description": "Reference to Employee document ID" },
+        "month": { "type": "number", "description": "Month (1-12)" },
+        "year": { "type": "number", "description": "Year" },
+        "baseSalary": { "type": "number" },
+        "bonus": { "type": "number" },
+        "deductions": { "type": "number" },
+        "netSalary": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "paid"], "description": "Payment status" }
+      },
+      "required": ["employeeId", "month", "year", "netSalary", "status"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A task assigned to an employee",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "assignedTo": { "type": "string", "description": "Employee ID" },
+        "dueDate": { "type": "string", "format": "date" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "status": { "type": "string", "enum": ["todo", "in-progress", "completed"] }
+      },
+      "required": ["title", "assignedTo", "status"]
+    },
+    "InventoryItem": {
+      "title": "Inventory Item",
+      "description": "Company asset or inventory item",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "assignedTo": { "type": "string", "description": "Employee ID (optional)" },
+        "status": { "type": "string", "enum": ["available", "assigned", "maintenance", "out-of-stock"] }
+      },
+      "required": ["name", "category", "quantity", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "System user with role-based access",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "hr", "manager", "employee"] },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/employees/{employeeId}": {
+      "schema": "Employee",
+      "description": "Collection of organization employees"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "System users and their roles"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Daily attendance logs"
+    },
+    "/payroll/{payrollId}": {
+      "schema": "Payroll",
+      "description": "Monthly payroll records"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Employee tasks"
+    },
+    "/inventory/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "Company assets and inventory"
+    },
+    "/settings/{settingId}": {
+      "schema": "object",
+      "description": "System wide settings"
+    }
+  }
+}

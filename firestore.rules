@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: employees
+    // Fields: name, email, role, department, joinDate, salary, status, photoURL
+    //
+    // Collection: attendance
+    // Fields: employeeId, date, checkIn, checkOut, status
+    //
+    // Collection: payroll
+    // Fields: employeeId, month, year, baseSalary, bonus, deductions, netSalary, status
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && (getUserData().role == role || (request.auth.token.email == "shermohamad854@gmail.com" && request.auth.token.email_verified == true && role == 'admin'));
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isHR() {
+      return hasRole('hr') || isAdmin();
+    }
+
+    function isManager() {
+      return hasRole('manager') || isHR();
+    }
+
+    // Users: Admins can manage all. Users can read their own.
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Employees: HR and Admins can read/write. Managers can read.
+    match /employees/{employeeId} {
+      allow read: if isManager() || (isAuthenticated() && request.auth.token.email == resource.data.email);
+      allow write: if isHR();
+    }
+
+    // Attendance: HR and Admins can read/write. Managers can read. Users can read/write their own.
+    match /attendance/{attendanceId} {
+      allow read: if isManager() || (isAuthenticated() && (resource.data.employeeId == request.auth.uid || request.resource.data.employeeId == request.auth.uid));
+      allow write: if isHR() || (isAuthenticated() && request.resource.data.employeeId == request.auth.uid);
+    }
+
+    // Payroll: HR and Admins can read/write. Users can read their own.
+    match /payroll/{payrollId} {
+      allow read: if isHR() || (isAuthenticated() && resource.data.employeeId == request.auth.uid);
+      allow write: if isHR();
+    }
+
+    // Tasks: Admins/Managers can read/write. Users can read/write tasks assigned to them.
+    match /tasks/{taskId} {
+      allow read, write: if isManager() || (isAuthenticated() && (resource.data.assignedTo == request.auth.uid || request.resource.data.assignedTo == request.auth.uid));
+    }
+
+    // Inventory: Admins can read/write all. Authenticated users can read.
+    match /inventory/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Settings: Admins can read/write. Authenticated users can read.
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
