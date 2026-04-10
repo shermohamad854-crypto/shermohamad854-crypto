@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, where, addDoc, Timestamp, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Attendance, Employee } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -18,12 +18,16 @@ export default function AttendanceTracker() {
   useEffect(() => {
     const empUnsubscribe = onSnapshot(collection(db, 'employees'), (snapshot) => {
       setEmployees(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'employees');
     });
 
     const attQuery = query(collection(db, 'attendance'), where('date', '==', today));
     const attUnsubscribe = onSnapshot(attQuery, (snapshot) => {
       setAttendance(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance)));
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'attendance');
     });
 
     return () => {

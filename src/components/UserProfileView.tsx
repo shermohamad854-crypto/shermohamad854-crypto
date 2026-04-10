@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { updateDoc, doc } from 'firebase/firestore';
-import { updateProfile, sendPasswordResetEmail } from 'firebase/auth';
+import { updateProfile, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { UserProfile } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -16,7 +16,9 @@ import {
   RefreshCw, 
   Save,
   KeyRound,
-  CheckCircle2
+  CheckCircle2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,6 +31,12 @@ export default function UserProfileView({ profile }: UserProfileViewProps) {
   const [displayName, setDisplayName] = useState(profile.displayName || '');
   const [photoURL, setPhotoURL] = useState(profile.photoURL || '');
   const [isResetting, setIsResetting] = useState(false);
+  
+  // Password Change State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const handleUpdateProfile = async () => {
     if (!auth.currentUser) return;
@@ -52,6 +60,39 @@ export default function UserProfileView({ profile }: UserProfileViewProps) {
       toast.error('Failed to update profile');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDirectPasswordUpdate = async () => {
+    if (!auth.currentUser) return;
+    if (!newPassword || !confirmPassword) {
+      toast.error('Please fill in both password fields');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      await updatePassword(auth.currentUser, newPassword);
+      toast.success('Password updated successfully');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      if (error.code === 'auth/requires-recent-login') {
+        toast.error('For security, please log out and log back in to change your password directly, or use the reset link below.');
+      } else {
+        toast.error(error.message || 'Failed to update password');
+      }
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -170,16 +211,66 @@ export default function UserProfileView({ profile }: UserProfileViewProps) {
               <CardTitle className="flex items-center gap-2">
                 <Lock className="w-5 h-5 text-amber-500" /> Security & Password
               </CardTitle>
-              <CardDescription>Change your password securely via email verification.</CardDescription>
+              <CardDescription>Update your password directly or request a reset link.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>New Password</Label>
+                    <div className="relative">
+                      <Input 
+                        type={showPassword ? "text" : "password"} 
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Min 6 characters"
+                        className="pr-10"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Confirm Password</Label>
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repeat new password"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleDirectPasswordUpdate} 
+                  disabled={isUpdatingPassword}
+                  className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
+                >
+                  {isUpdatingPassword ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <KeyRound className="w-4 h-4 mr-2" />}
+                  Update Password
+                </Button>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-slate-100" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-slate-400">Or use email reset</span>
+                </div>
+              </div>
+
               <div className="p-4 bg-amber-50 rounded-xl flex gap-3 items-start">
-                <KeyRound className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <Mail className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-amber-900">Secure Password Reset</p>
+                  <p className="text-sm font-medium text-amber-900">Email Verification Link</p>
                   <p className="text-xs text-amber-700 mt-1">
-                    For your security, we will send a verification link to your registered email. 
-                    Follow the link to set a new password.
+                    If you've forgotten your current password or need to reset it via email, 
+                    we can send a verification link to your registered email.
                   </p>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Employee, Attendance, Payroll, Task } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { 
@@ -28,10 +28,10 @@ export default function ReportingDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    const unsubEmps = onSnapshot(collection(db, 'employees'), (s) => setEmployees(s.docs.map(d => ({id: d.id, ...d.data()} as Employee))));
-    const unsubAtt = onSnapshot(collection(db, 'attendance'), (s) => setAttendance(s.docs.map(d => ({id: d.id, ...d.data()} as Attendance))));
-    const unsubPay = onSnapshot(collection(db, 'payroll'), (s) => setPayroll(s.docs.map(d => ({id: d.id, ...d.data()} as Payroll))));
-    const unsubTasks = onSnapshot(collection(db, 'tasks'), (s) => setTasks(s.docs.map(d => ({id: d.id, ...d.data()} as Task))));
+    const unsubEmps = onSnapshot(collection(db, 'employees'), (s) => setEmployees(s.docs.map(d => ({id: d.id, ...d.data()} as Employee))), (e) => handleFirestoreError(e, OperationType.LIST, 'employees'));
+    const unsubAtt = onSnapshot(collection(db, 'attendance'), (s) => setAttendance(s.docs.map(d => ({id: d.id, ...d.data()} as Attendance))), (e) => handleFirestoreError(e, OperationType.LIST, 'attendance'));
+    const unsubPay = onSnapshot(collection(db, 'payroll'), (s) => setPayroll(s.docs.map(d => ({id: d.id, ...d.data()} as Payroll))), (e) => handleFirestoreError(e, OperationType.LIST, 'payroll'));
+    const unsubTasks = onSnapshot(collection(db, 'tasks'), (s) => setTasks(s.docs.map(d => ({id: d.id, ...d.data()} as Task))), (e) => handleFirestoreError(e, OperationType.LIST, 'tasks'));
 
     return () => {
       unsubEmps();

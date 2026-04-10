@@ -22,11 +22,16 @@ service cloud.firestore {
     }
 
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
     }
 
     function hasRole(role) {
-      return isAuthenticated() && (getUserData().role == role || (request.auth.token.email == "shermohamad854@gmail.com" && request.auth.token.email_verified == true && role == 'admin'));
+      let data = getUserData();
+      return isAuthenticated() && (
+        (data != null && data.role == role) || 
+        (request.auth.token.email == "shermohamad854@gmail.com" && request.auth.token.email_verified == true && role == 'admin')
+      );
     }
 
     function isAdmin() {
@@ -76,9 +81,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Settings: Admins can read/write. Authenticated users can read.
+    // Settings: Admins can read/write. Authenticated users can read. general is public for branding.
     match /settings/{settingId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() || settingId == 'general';
       allow write: if isAdmin();
     }
   }

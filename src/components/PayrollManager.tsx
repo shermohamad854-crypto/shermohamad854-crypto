@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, addDoc, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Employee, Payroll } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -45,18 +45,24 @@ export default function PayrollManager() {
   useEffect(() => {
     const empUnsubscribe = onSnapshot(collection(db, 'employees'), (snapshot) => {
       setEmployees(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'employees');
     });
 
     const payrollQuery = query(collection(db, 'payroll'), orderBy('year', 'desc'), orderBy('month', 'desc'));
     const payrollUnsubscribe = onSnapshot(payrollQuery, (snapshot) => {
       setPayrollHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payroll)));
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'payroll');
     });
 
     const settingsUnsub = onSnapshot(doc(db, 'settings', 'general'), (doc) => {
       if (doc.exists()) {
         setCompanyName(doc.data().companyName || 'Nexus HRM Solutions');
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/general');
     });
 
     return () => {

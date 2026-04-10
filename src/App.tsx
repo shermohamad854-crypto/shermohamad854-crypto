@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
-import { auth, signIn, logout, db, signInEmail, signUpEmail } from './lib/firebase';
+import { auth, signIn, logout, db, signInEmail, signUpEmail, handleFirestoreError, OperationType } from './lib/firebase';
 import { Button } from './components/ui/button';
 import { Toaster } from './components/ui/sonner';
 import { Badge } from './components/ui/badge';
@@ -67,7 +67,7 @@ export default function App() {
           const newProfile = {
             email: user.email,
             role: isDefaultAdmin ? 'admin' : 'employee',
-            displayName: user.displayName || email.split('@')[0],
+            displayName: user.displayName || user.email?.split('@')[0] || 'New User',
             photoURL: user.photoURL || ''
           };
           await setDoc(userRef, newProfile);
@@ -81,6 +81,8 @@ export default function App() {
           if (snap.exists()) {
             setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
           }
+        }, (error) => {
+          handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
         });
       } else {
         setUserProfile(null);
@@ -97,13 +99,15 @@ export default function App() {
           logoUrl: data.logoUrl || ''
         });
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/general');
     });
 
     return () => {
       unsubscribe();
       settingsUnsub();
     };
-  }, [email]);
+  }, []);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -328,7 +332,7 @@ export default function App() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {activeTab === 'dashboard' && <DashboardOverview />}
+              {activeTab === 'dashboard' && <DashboardOverview role={role} />}
               {activeTab === 'employees' && <EmployeeList />}
               {activeTab === 'attendance' && <AttendanceTracker />}
               {activeTab === 'tasks' && <TaskManager />}

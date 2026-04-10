@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, limit, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { Employee, Attendance } from '../types';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { Employee, Attendance, UserProfile } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { 
@@ -24,26 +24,41 @@ import {
   Area
 } from 'recharts';
 
-export default function DashboardOverview() {
+interface DashboardOverviewProps {
+  role: UserProfile['role'];
+}
+
+export default function DashboardOverview({ role }: DashboardOverviewProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const isManagerPlus = ['admin', 'hr', 'manager'].includes(role);
+
+    if (!isManagerPlus) {
+      setLoading(false);
+      return;
+    }
+
     const empUnsubscribe = onSnapshot(collection(db, 'employees'), (snapshot) => {
       setEmployees(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'employees');
     });
 
     const attUnsubscribe = onSnapshot(query(collection(db, 'attendance'), limit(100)), (snapshot) => {
       setAttendance(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance)));
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'attendance');
     });
 
     return () => {
       empUnsubscribe();
       attUnsubscribe();
     };
-  }, []);
+  }, [role]);
 
   const stats = [
     { 
