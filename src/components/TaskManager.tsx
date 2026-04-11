@@ -12,7 +12,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogClose
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { 
@@ -22,7 +23,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from './ui/select';
-import { CheckCircle2, Circle, Clock, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Plus, Trash2, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TaskManager() {
@@ -30,6 +31,8 @@ export default function TaskManager() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState<Partial<Task>>({
     status: 'todo',
     priority: 'medium',
@@ -81,14 +84,28 @@ export default function TaskManager() {
     }
   };
 
-  const deleteTask = async (id: string) => {
-    if (confirm('Delete this task?')) {
-      try {
-        await deleteDoc(doc(db, 'tasks', id));
-        toast.success('Task deleted');
-      } catch (error) {
-        toast.error('Failed to delete task');
+  const handleEditTask = async () => {
+    try {
+      if (!editingTask || !editingTask.title || !editingTask.assignedTo) {
+        toast.error('Please fill in required fields');
+        return;
       }
+      const { id, ...data } = editingTask;
+      await updateDoc(doc(db, 'tasks', id), data);
+      setIsEditDialogOpen(false);
+      setEditingTask(null);
+      toast.success('Task updated successfully');
+    } catch (error) {
+      toast.error('Failed to update task');
+    }
+  };
+
+  const deleteTask = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'tasks', id));
+      toast.success('Task deleted');
+    } catch (error) {
+      toast.error('Failed to delete task');
     }
   };
 
@@ -122,7 +139,7 @@ export default function TaskManager() {
               </div>
               <div className="grid gap-2">
                 <Label>Assigned To</Label>
-                <Select onValueChange={(v) => setNewTask({...newTask, assignedTo: v})}>
+                <Select onValueChange={(v: string) => setNewTask({...newTask, assignedTo: v})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
@@ -159,6 +176,85 @@ export default function TaskManager() {
             </div>
             <DialogFooter>
               <Button onClick={handleAddTask}>Create Task</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Title</Label>
+                <Input 
+                  value={editingTask?.title || ''} 
+                  onChange={(e) => setEditingTask(prev => prev ? {...prev, title: e.target.value} : null)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Assigned To</Label>
+                <Select 
+                  value={editingTask?.assignedTo}
+                  onValueChange={(v: string) => setEditingTask(prev => prev ? {...prev, assignedTo: v} : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Priority</Label>
+                  <Select 
+                    value={editingTask?.priority}
+                    onValueChange={(v: any) => setEditingTask(prev => prev ? {...prev, priority: v} : null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Due Date</Label>
+                  <Input 
+                    type="date" 
+                    value={editingTask?.dueDate || ''} 
+                    onChange={(e) => setEditingTask(prev => prev ? {...prev, dueDate: e.target.value} : null)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Status</Label>
+                <Select 
+                  value={editingTask?.status}
+                  onValueChange={(v: any) => setEditingTask(prev => prev ? {...prev, status: v} : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todo">To Do</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditTask}>Update Task</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -201,9 +297,46 @@ export default function TaskManager() {
                         <span className="text-[10px] text-slate-400 flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {task.dueDate}
                         </span>
-                        <button onClick={() => deleteTask(task.id)} className="text-slate-300 hover:text-rose-500 transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-slate-300 hover:text-primary transition-colors"
+                            onClick={() => {
+                              setEditingTask(task);
+                              setIsEditDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                          <Dialog>
+                            <DialogTrigger 
+                              render={
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-slate-300 hover:text-rose-500 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              }
+                            />
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Delete Task</DialogTitle>
+                              </DialogHeader>
+                              <p className="py-4 text-slate-600">
+                                Are you sure you want to delete this task?
+                              </p>
+                              <DialogFooter>
+                                <DialogClose render={<Button variant="outline" />}>
+                                  Cancel
+                                </DialogClose>
+                                <Button variant="destructive" onClick={() => deleteTask(task.id)}>Delete</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

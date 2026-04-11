@@ -18,7 +18,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogClose
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { 
@@ -37,6 +38,8 @@ export default function EmployeeList() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [newEmployee, setNewEmployee] = useState<Partial<Employee>>({
     status: 'active',
     department: '',
@@ -58,7 +61,7 @@ export default function EmployeeList() {
 
   const handleAddEmployee = async () => {
     try {
-      if (!newEmployee.name || !newEmployee.email || !newEmployee.role) {
+      if (!newEmployee.name || !newEmployee.email || !newEmployee.role || !newEmployee.department) {
         toast.error('Please fill in all required fields');
         return;
       }
@@ -72,14 +75,29 @@ export default function EmployeeList() {
     }
   };
 
-  const handleDeleteEmployee = async (id: string) => {
-    if (confirm('Are you sure you want to delete this employee?')) {
-      try {
-        await deleteDoc(doc(db, 'employees', id));
-        toast.success('Employee deleted');
-      } catch (error) {
-        toast.error('Failed to delete employee');
+  const handleEditEmployee = async () => {
+    try {
+      if (!editingEmployee || !editingEmployee.name || !editingEmployee.email || !editingEmployee.role || !editingEmployee.department) {
+        toast.error('Please fill in all required fields');
+        return;
       }
+      const { id, ...data } = editingEmployee;
+      await updateDoc(doc(db, 'employees', id), data);
+      setIsEditDialogOpen(false);
+      setEditingEmployee(null);
+      toast.success('Employee updated successfully');
+    } catch (error) {
+      toast.error('Failed to update employee');
+      console.error(error);
+    }
+  };
+
+  const handleDeleteEmployee = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'employees', id));
+      toast.success('Employee deleted');
+    } catch (error) {
+      toast.error('Failed to delete employee');
     }
   };
 
@@ -145,7 +163,7 @@ export default function EmployeeList() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="department" className="text-right">Dept.</Label>
-                <Select onValueChange={(v) => setNewEmployee({...newEmployee, department: v})}>
+                <Select onValueChange={(v: string) => setNewEmployee({...newEmployee, department: v})}>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
@@ -173,6 +191,93 @@ export default function EmployeeList() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleAddEmployee}>Save Employee</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Employee</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-name" className="text-right">Name</Label>
+                <Input 
+                  id="edit-name" 
+                  className="col-span-3" 
+                  value={editingEmployee?.name || ''}
+                  onChange={(e) => setEditingEmployee(prev => prev ? {...prev, name: e.target.value} : null)}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-email" className="text-right">Email</Label>
+                <Input 
+                  id="edit-email" 
+                  type="email" 
+                  className="col-span-3" 
+                  value={editingEmployee?.email || ''}
+                  onChange={(e) => setEditingEmployee(prev => prev ? {...prev, email: e.target.value} : null)}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-role" className="text-right">Role</Label>
+                <Input 
+                  id="edit-role" 
+                  className="col-span-3" 
+                  value={editingEmployee?.role || ''}
+                  onChange={(e) => setEditingEmployee(prev => prev ? {...prev, role: e.target.value} : null)}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-department" className="text-right">Dept.</Label>
+                <Select 
+                  value={editingEmployee?.department}
+                  onValueChange={(v: string) => setEditingEmployee(prev => prev ? {...prev, department: v} : null)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Engineering">Engineering</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                    <SelectItem value="Sales">Sales</SelectItem>
+                    <SelectItem value="HR">HR</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Office Administration">Office Administration</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-status" className="text-right">Status</Label>
+                <Select 
+                  value={editingEmployee?.status}
+                  onValueChange={(v: any) => setEditingEmployee(prev => prev ? {...prev, status: v} : null)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="on-leave">On Leave</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-salary" className="text-right">Salary</Label>
+                <Input 
+                  id="edit-salary" 
+                  type="number" 
+                  className="col-span-3" 
+                  value={editingEmployee?.salary || ''}
+                  onChange={(e) => setEditingEmployee(prev => prev ? {...prev, salary: Number(e.target.value)} : null)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditEmployee}>Update Employee</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -227,17 +332,44 @@ export default function EmployeeList() {
                   <TableCell className="text-slate-600">{emp.joinDate}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-primary">
-                        <Edit className="w-4 h-4" />
-                      </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 text-slate-400 hover:text-red-500"
-                        onClick={() => handleDeleteEmployee(emp.id)}
+                        className="h-8 w-8 text-slate-400 hover:text-primary"
+                        onClick={() => {
+                          setEditingEmployee(emp);
+                          setIsEditDialogOpen(true);
+                        }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Edit className="w-4 h-4" />
                       </Button>
+                      <Dialog>
+                        <DialogTrigger 
+                          render={
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-slate-400 hover:text-red-500"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          }
+                        />
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Employee</DialogTitle>
+                          </DialogHeader>
+                          <p className="py-4 text-slate-600">
+                            Are you sure you want to delete <strong>{emp.name}</strong>? This action cannot be undone.
+                          </p>
+                          <DialogFooter>
+                            <DialogClose render={<Button variant="outline" />}>
+                              Cancel
+                            </DialogClose>
+                            <Button variant="destructive" onClick={() => handleDeleteEmployee(emp.id)}>Delete</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </TableCell>
                 </TableRow>

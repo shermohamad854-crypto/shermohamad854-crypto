@@ -12,7 +12,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogClose
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { 
@@ -22,7 +23,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from './ui/select';
-import { Package, Plus, Search, Trash2, User } from 'lucide-react';
+import { Edit, Package, Plus, Search, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InventoryManager() {
@@ -30,6 +31,8 @@ export default function InventoryManager() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [newItem, setNewItem] = useState<Partial<InventoryItem>>({
     status: 'available',
     quantity: 1,
@@ -71,14 +74,28 @@ export default function InventoryManager() {
     }
   };
 
-  const deleteItem = async (id: string) => {
-    if (confirm('Delete this item?')) {
-      try {
-        await deleteDoc(doc(db, 'inventory', id));
-        toast.success('Item deleted');
-      } catch (error) {
-        toast.error('Failed to delete item');
+  const handleEditItem = async () => {
+    try {
+      if (!editingItem || !editingItem.name || !editingItem.category) {
+        toast.error('Please fill in required fields');
+        return;
       }
+      const { id, ...data } = editingItem;
+      await updateDoc(doc(db, 'inventory', id), data);
+      setIsEditDialogOpen(false);
+      setEditingItem(null);
+      toast.success('Item updated successfully');
+    } catch (error) {
+      toast.error('Failed to update item');
+    }
+  };
+
+  const deleteItem = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'inventory', id));
+      toast.success('Item deleted');
+    } catch (error) {
+      toast.error('Failed to delete item');
     }
   };
 
@@ -147,6 +164,85 @@ export default function InventoryManager() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Inventory Item</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Item Name</Label>
+                <Input 
+                  value={editingItem?.name || ''} 
+                  onChange={(e) => setEditingItem(prev => prev ? {...prev, name: e.target.value} : null)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Category</Label>
+                <Input 
+                  value={editingItem?.category || ''} 
+                  onChange={(e) => setEditingItem(prev => prev ? {...prev, category: e.target.value} : null)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Quantity</Label>
+                  <Input 
+                    type="number" 
+                    value={editingItem?.quantity || ''} 
+                    onChange={(e) => setEditingItem(prev => prev ? {...prev, quantity: Number(e.target.value)} : null)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Unit</Label>
+                  <Input 
+                    value={editingItem?.unit || ''} 
+                    onChange={(e) => setEditingItem(prev => prev ? {...prev, unit: e.target.value} : null)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Status</Label>
+                <Select 
+                  value={editingItem?.status}
+                  onValueChange={(v: any) => setEditingItem(prev => prev ? {...prev, status: v} : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="assigned">Assigned</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Assigned To</Label>
+                <Select 
+                  value={editingItem?.assignedTo}
+                  onValueChange={(v: string) => setEditingItem(prev => prev ? {...prev, assignedTo: v} : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Unassigned</SelectItem>
+                    {employees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditItem}>Update Item</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative w-full sm:w-96">
@@ -197,9 +293,46 @@ export default function InventoryManager() {
                     ) : '--'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => deleteItem(item.id)} className="text-slate-300 hover:text-rose-500">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-slate-400 hover:text-primary"
+                        onClick={() => {
+                          setEditingItem(item);
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Dialog>
+                        <DialogTrigger 
+                          render={
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-slate-400 hover:text-red-500"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          }
+                        />
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Item</DialogTitle>
+                          </DialogHeader>
+                          <p className="py-4 text-slate-600">
+                            Are you sure you want to delete <strong>{item.name}</strong>?
+                          </p>
+                          <DialogFooter>
+                            <DialogClose render={<Button variant="outline" />}>
+                              Cancel
+                            </DialogClose>
+                            <Button variant="destructive" onClick={() => deleteItem(item.id)}>Delete</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

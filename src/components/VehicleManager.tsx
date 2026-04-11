@@ -12,7 +12,8 @@ import {
   Trash2, 
   Upload,
   ExternalLink,
-  X
+  X,
+  Edit
 } from 'lucide-react';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
@@ -27,6 +28,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogClose,
 } from './ui/dialog';
 import {
   Select,
@@ -51,6 +53,10 @@ export default function VehicleManager() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({
     status: 'active',
@@ -103,21 +109,72 @@ export default function VehicleManager() {
       });
       toast.success('Vehicle added successfully');
     } catch (error) {
-      console.error('Error adding vehicle:', error);
-      toast.error('Failed to add vehicle');
+      handleFirestoreError(error, OperationType.CREATE, 'vehicles');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteVehicle = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this vehicle record?')) {
-      try {
-        await deleteDoc(doc(db, 'vehicles', id));
-        toast.success('Vehicle record deleted');
-      } catch (error) {
-        toast.error('Failed to delete vehicle');
+  const handleEditVehicle = async () => {
+    try {
+      if (!editingVehicle || !editingVehicle.vehicleNumber || !editingVehicle.vehicleName || !editingVehicle.driverName || !editingVehicle.driverContact) {
+        toast.error('Please fill in all required fields');
+        return;
       }
+
+      setIsSubmitting(true);
+      const { id, ...data } = editingVehicle;
+      await updateDoc(doc(db, 'vehicles', id), data);
+      setIsEditDialogOpen(false);
+      setEditingVehicle(null);
+      toast.success('Vehicle updated successfully');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'vehicles');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleViewNOC = (url: string) => {
+    if (url.startsWith('data:application/pdf')) {
+      // For PDFs, we try to open in a new tab using a Blob to bypass iframe restrictions
+      try {
+        const base64Data = url.split(',')[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (e) {
+        console.error('Error opening PDF:', e);
+        toast.error('Could not open PDF. Try downloading it instead.');
+      }
+    } else {
+      // For images, show in preview dialog
+      setPreviewUrl(url);
+      setIsPreviewOpen(true);
+    }
+  };
+
+  const handleDownloadNOC = (url: string, fileName: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `NOC_${fileName}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDeleteVehicle = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'vehicles', id));
+      toast.success('Vehicle deleted successfully');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'vehicles');
     }
   };
 
@@ -296,6 +353,149 @@ export default function VehicleManager() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Edit Vehicle Details</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Vehicle Number</Label>
+                <Input 
+                  value={editingVehicle?.vehicleNumber || ''} 
+                  onChange={(e) => setEditingVehicle(prev => prev ? {...prev, vehicleNumber: e.target.value} : null)}
+                  placeholder="e.g. MH 12 AB 1234"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Vehicle Name</Label>
+                <Input 
+                  value={editingVehicle?.vehicleName || ''} 
+                  onChange={(e) => setEditingVehicle(prev => prev ? {...prev, vehicleName: e.target.value} : null)}
+                  placeholder="e.g. Toyota Innova"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Driver Name</Label>
+                <Input 
+                  value={editingVehicle?.driverName || ''} 
+                  onChange={(e) => setEditingVehicle(prev => prev ? {...prev, driverName: e.target.value} : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Driver Contact</Label>
+                <Input 
+                  value={editingVehicle?.driverContact || ''} 
+                  onChange={(e) => setEditingVehicle(prev => prev ? {...prev, driverContact: e.target.value} : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Assignment Date</Label>
+                <Input 
+                  type="date"
+                  value={editingVehicle?.assignmentDate || ''} 
+                  onChange={(e) => setEditingVehicle(prev => prev ? {...prev, assignmentDate: e.target.value} : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Approved By</Label>
+                <Input 
+                  value={editingVehicle?.approvedBy || ''} 
+                  onChange={(e) => setEditingVehicle(prev => prev ? {...prev, approvedBy: e.target.value} : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Handover Date (Optional)</Label>
+                <Input 
+                  type="date"
+                  value={editingVehicle?.handoverDate || ''} 
+                  onChange={(e) => setEditingVehicle(prev => prev ? {...prev, handoverDate: e.target.value} : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select 
+                  value={editingVehicle?.status} 
+                  onValueChange={(v: any) => setEditingVehicle(prev => prev ? {...prev, status: v} : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="retired">Retired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label>NOC Document</Label>
+                <div className="flex items-center gap-4">
+                  <Input 
+                    type="file" 
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setEditingVehicle(prev => prev ? {...prev, nocUrl: reader.result as string} : null);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  {editingVehicle?.nocUrl && (
+                    <Badge variant="outline" className="h-10 px-4 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" /> File Uploaded
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditVehicle} disabled={isSubmitting}>
+                {isSubmitting ? 'Updating...' : 'Update Vehicle'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>NOC Document Preview</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-100 rounded-lg">
+              {previewUrl?.startsWith('data:image') ? (
+                <img 
+                  src={previewUrl} 
+                  alt="NOC Preview" 
+                  className="max-w-full h-auto shadow-lg rounded"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="text-center space-y-4">
+                  <FileText className="w-16 h-16 text-slate-400 mx-auto" />
+                  <p className="text-slate-600">This document type cannot be previewed directly.</p>
+                  <Button onClick={() => previewUrl && handleDownloadNOC(previewUrl, 'document')}>
+                    Download to View
+                  </Button>
+                </div>
+              )}
+            </div>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>Close</Button>
+              {previewUrl && (
+                <Button onClick={() => handleDownloadNOC(previewUrl, 'vehicle_noc')}>
+                  Download
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative w-full sm:w-96">
@@ -324,7 +524,13 @@ export default function VehicleManager() {
             <TableBody>
               <AnimatePresence mode="popLayout">
                 {filteredVehicles.map((v) => (
-                  <TableRow key={v.id} component={motion.tr} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <motion.tr 
+                    key={v.id} 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }}
+                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -362,16 +568,14 @@ export default function VehicleManager() {
                     </TableCell>
                     <TableCell>
                       {v.nocUrl ? (
-                        <a 
-                          href={v.nocUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                        <button 
+                          onClick={() => handleViewNOC(v.nocUrl!)}
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline cursor-pointer"
                         >
                           <FileText className="w-3.5 h-3.5" />
                           View NOC
                           <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-xs text-slate-400 italic">No NOC</span>
                       )}
@@ -392,16 +596,48 @@ export default function VehicleManager() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-slate-400 hover:text-destructive"
-                        onClick={() => handleDeleteVehicle(v.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-slate-400 hover:text-primary"
+                          onClick={() => {
+                            setEditingVehicle(v);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Dialog>
+                          <DialogTrigger 
+                            render={
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-slate-400 hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            }
+                          />
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Delete Vehicle</DialogTitle>
+                            </DialogHeader>
+                            <p className="py-4 text-slate-600">
+                              Are you sure you want to delete vehicle <strong>{v.vehicleNumber}</strong>? This action cannot be undone.
+                            </p>
+                            <DialogFooter>
+                              <DialogClose render={<Button variant="outline" />}>
+                                Cancel
+                              </DialogClose>
+                              <Button variant="destructive" onClick={() => handleDeleteVehicle(v.id)}>Delete</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </TableCell>
-                  </TableRow>
+                  </motion.tr>
                 ))}
               </AnimatePresence>
               {filteredVehicles.length === 0 && (
