@@ -48,13 +48,20 @@ export default function EmployeeList() {
   });
 
   useEffect(() => {
-    const q = query(collection(db, 'employees'), orderBy('name'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // Only fetch if user is likely to have permission (UI check)
+    // The actual enforcement is in Firestore Rules
+    const unsubscribe = onSnapshot(query(collection(db, 'employees'), orderBy('name')), (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee));
       setEmployees(docs);
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'employees');
+      // If it's a permission error, we just stop loading and show empty
+      if (error.code === 'permission-denied') {
+        console.warn("Permission denied fetching employees list");
+        setLoading(false);
+      } else {
+        handleFirestoreError(error, OperationType.LIST, 'employees');
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -121,79 +128,76 @@ export default function EmployeeList() {
         </div>
         
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger
-            render={
-              <Button className="h-11 px-6">
-                <UserPlus className="mr-2 w-4 h-4" /> Add Employee
-              </Button>
-            }
-          />
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Employee</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Input 
-                  id="name" 
-                  className="col-span-3" 
-                  value={newEmployee.name || ''}
-                  onChange={(e) => setNewEmployee({...newEmployee, name: e.target.value})}
-                />
+          <DialogTrigger render={<Button className="h-11 px-6" />}>
+            <UserPlus className="mr-2 w-4 h-4" /> Add Employee
+          </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add New Employee</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Name</Label>
+                  <Input 
+                    id="name" 
+                    className="col-span-3" 
+                    value={newEmployee.name || ''}
+                    onChange={(e) => setNewEmployee({...newEmployee, name: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    className="col-span-3" 
+                    value={newEmployee.email || ''}
+                    onChange={(e) => setNewEmployee({...newEmployee, email: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="role" className="text-right">Role</Label>
+                  <Input 
+                    id="role" 
+                    className="col-span-3" 
+                    value={newEmployee.role || ''}
+                    onChange={(e) => setNewEmployee({...newEmployee, role: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="department" className="text-right">Dept.</Label>
+                  <Select onValueChange={(v: string) => setNewEmployee({...newEmployee, department: v})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Engineering">Engineering</SelectItem>
+                      <SelectItem value="Marketing">Marketing</SelectItem>
+                      <SelectItem value="Sales">Sales</SelectItem>
+                      <SelectItem value="HR">HR</SelectItem>
+                      <SelectItem value="Finance">Finance</SelectItem>
+                      <SelectItem value="Office Administration">Office Administration</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="salary" className="text-right">Salary</Label>
+                  <Input 
+                    id="salary" 
+                    type="number" 
+                    className="col-span-3" 
+                    value={newEmployee.salary || ''}
+                    onChange={(e) => setNewEmployee({...newEmployee, salary: Number(e.target.value)})}
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  className="col-span-3" 
-                  value={newEmployee.email || ''}
-                  onChange={(e) => setNewEmployee({...newEmployee, email: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="role" className="text-right">Role</Label>
-                <Input 
-                  id="role" 
-                  className="col-span-3" 
-                  value={newEmployee.role || ''}
-                  onChange={(e) => setNewEmployee({...newEmployee, role: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="department" className="text-right">Dept.</Label>
-                <Select onValueChange={(v: string) => setNewEmployee({...newEmployee, department: v})}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Engineering">Engineering</SelectItem>
-                    <SelectItem value="Marketing">Marketing</SelectItem>
-                    <SelectItem value="Sales">Sales</SelectItem>
-                    <SelectItem value="HR">HR</SelectItem>
-                    <SelectItem value="Finance">Finance</SelectItem>
-                    <SelectItem value="Office Administration">Office Administration</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="salary" className="text-right">Salary</Label>
-                <Input 
-                  id="salary" 
-                  type="number" 
-                  className="col-span-3" 
-                  value={newEmployee.salary || ''}
-                  onChange={(e) => setNewEmployee({...newEmployee, salary: Number(e.target.value)})}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddEmployee}>Save Employee</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleAddEmployee}>Save Employee</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
@@ -281,7 +285,6 @@ export default function EmployeeList() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <Table>
@@ -331,7 +334,7 @@ export default function EmployeeList() {
                   </TableCell>
                   <TableCell className="text-slate-600">{emp.joinDate}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -344,17 +347,15 @@ export default function EmployeeList() {
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Dialog>
-                        <DialogTrigger 
-                          render={
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-slate-400 hover:text-red-500"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          }
-                        />
+                        <DialogTrigger render={
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-slate-400 hover:text-red-500"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        } />
                         <DialogContent>
                           <DialogHeader>
                             <DialogTitle>Delete Employee</DialogTitle>
@@ -363,9 +364,7 @@ export default function EmployeeList() {
                             Are you sure you want to delete <strong>{emp.name}</strong>? This action cannot be undone.
                           </p>
                           <DialogFooter>
-                            <DialogClose render={<Button variant="outline" />}>
-                              Cancel
-                            </DialogClose>
+                            <DialogClose render={<Button variant="outline">Cancel</Button>} />
                             <Button variant="destructive" onClick={() => handleDeleteEmployee(emp.id)}>Delete</Button>
                           </DialogFooter>
                         </DialogContent>

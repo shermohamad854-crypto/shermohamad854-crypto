@@ -3,6 +3,12 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { auth, signIn, logout, db, signInEmail, signUpEmail, handleFirestoreError, OperationType } from './lib/firebase';
 import { Button } from './components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './components/ui/dialog';
 import { Toaster } from './components/ui/sonner';
 import { Badge } from './components/ui/badge';
 import { Input } from './components/ui/input';
@@ -51,6 +57,8 @@ export default function App() {
     logoUrl: ''
   });
   
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  
   // Login State
   const [loginMode, setLoginMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
@@ -58,44 +66,55 @@ export default function App() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Check if user profile exists, if not create it
-        const userRef = doc(db, 'users', user.uid);
+    let profileUnsub: (() => void) | null = null;
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Cleanup previous profile listener if any
+      if (profileUnsub) {
+        profileUnsub();
+        profileUnsub = null;
+      }
+
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        
+        // Initial fetch
         try {
           const userSnap = await getDoc(userRef);
-          
-          if (!userSnap.exists()) {
-            const isDefaultAdmin = user.email === "shermohamad854@gmail.com";
+          if (userSnap.exists()) {
+            setUserProfile({ id: userSnap.id, ...userSnap.data() } as UserProfile);
+          } else {
+            // Create profile if it doesn't exist
+            // Match firestore rules: admin requires verified email
+            const isDefaultAdmin = firebaseUser.email === "shermohamad854@gmail.com" && firebaseUser.emailVerified;
             const newProfile = {
-              email: user.email,
+              email: firebaseUser.email,
               role: isDefaultAdmin ? 'admin' : 'employee',
-              displayName: user.displayName || user.email?.split('@')[0] || 'New User',
-              photoURL: user.photoURL || ''
+              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'New User',
+              photoURL: firebaseUser.photoURL || ''
             };
             await setDoc(userRef, newProfile);
-            setUserProfile({ id: user.uid, ...newProfile } as UserProfile);
-          } else {
-            setUserProfile({ id: userSnap.id, ...userSnap.data() } as UserProfile);
+            setUserProfile({ id: firebaseUser.uid, ...newProfile } as UserProfile);
           }
         } catch (error) {
-          console.error("Error fetching user profile:", error);
-          // If we can't read the profile yet (e.g. rules propagation delay), 
-          // we'll rely on the onSnapshot listener below which has its own error handling
+          console.error("Error fetching initial user profile:", error);
         }
 
-        // Listen for profile changes (role updates)
-        onSnapshot(userRef, (snap) => {
+        // Start real-time listener
+        profileUnsub = onSnapshot(userRef, (snap) => {
           if (snap.exists()) {
             setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
           }
         }, (error) => {
-          handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+          if (auth.currentUser) {
+            console.error("Profile listener error:", error);
+          }
         });
       } else {
+        setUser(null);
         setUserProfile(null);
       }
-      setUser(user);
       setLoading(false);
     });
 
@@ -108,11 +127,13 @@ export default function App() {
         });
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'settings/general');
+      // Settings might be restricted, but general branding should be public
+      // If it fails, we just keep defaults
     });
 
     return () => {
       unsubscribe();
+      if (profileUnsub) profileUnsub();
       settingsUnsub();
     };
   }, []);
@@ -134,7 +155,14 @@ export default function App() {
         toast.success('Account created successfully!');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error('This email is already registered. Please sign in instead.');
+        setLoginMode('login');
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        toast.error('Invalid email or password');
+      } else {
+        toast.error(error.message || 'Authentication failed');
+      }
     } finally {
       setIsAuthenticating(false);
     }
@@ -148,92 +176,94 @@ export default function App() {
     );
   }
 
+  const role = userProfile?.role || 'employee';
+
   if (!user) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl text-center space-y-6"
+          className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden"
         >
-          <div className="bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto">
-            {companySettings.logoUrl ? (
-              <img src={companySettings.logoUrl} alt="Logo" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
-            ) : (
-              <Users className="w-8 h-8 text-primary" />
-            )}
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">{companySettings.companyName}</h1>
-            <p className="text-slate-500">Professional Human Resource Management System</p>
-          </div>
+          <div className="p-8 space-y-8">
+            <div className="text-center space-y-2">
+              <div className="bg-primary w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+                {companySettings.logoUrl ? (
+                  <img src={companySettings.logoUrl} alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <Users className="w-6 h-6 text-white" />
+                )}
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900">Welcome to {companySettings.companyName}</h1>
+              <p className="text-slate-500">Please sign in to access your workspace</p>
+            </div>
 
-          <form onSubmit={handleEmailAuth} className="space-y-4 text-left">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input 
-                  id="email"
-                  type="email" 
-                  placeholder="name@company.com" 
-                  className="pl-10 h-11"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+            <form onSubmit={handleEmailAuth} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input 
+                    id="email"
+                    type="email" 
+                    placeholder="name@company.com" 
+                    className="pl-10 h-12 rounded-xl border-slate-200 focus:ring-primary"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input 
-                  id="password"
-                  type="password" 
-                  placeholder="••••••••" 
-                  className="pl-10 h-11"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input 
+                    id="password"
+                    type="password" 
+                    placeholder="••••••••" 
+                    className="pl-10 h-12 rounded-xl border-slate-200 focus:ring-primary"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
               </div>
+              <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold shadow-lg shadow-primary/20" disabled={isAuthenticating}>
+                {isAuthenticating ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <>{loginMode === 'login' ? 'Sign In' : 'Create Account'} <ArrowRight className="ml-2 w-4 h-4" /></>
+                )}
+              </Button>
+            </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-4 text-slate-400 font-medium">Or continue with</span></div>
             </div>
-            <Button type="submit" className="w-full h-11 text-lg font-medium" disabled={isAuthenticating}>
-              {isAuthenticating ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                <>{loginMode === 'login' ? 'Sign In' : 'Create Account'} <ArrowRight className="ml-2 w-4 h-4" /></>
-              )}
+
+            <Button variant="outline" onClick={signIn} className="w-full h-12 rounded-xl border-slate-200 hover:bg-slate-50 transition-colors" disabled={isAuthenticating}>
+              <LogIn className="mr-2 h-4 w-4" /> Google Account
             </Button>
-          </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-slate-500">Or continue with</span>
-            </div>
+            <p className="text-center text-sm text-slate-500">
+              {loginMode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
+              <button 
+                onClick={() => setLoginMode(loginMode === 'login' ? 'signup' : 'login')}
+                className="text-primary font-bold hover:underline"
+              >
+                {loginMode === 'login' ? 'Sign up' : 'Log in'}
+              </button>
+            </p>
           </div>
-
-          <Button variant="outline" onClick={signIn} className="w-full h-11 font-medium" disabled={isAuthenticating}>
-            <LogIn className="mr-2 h-4 w-4" /> Google Account
-          </Button>
-
-          <p className="text-sm text-slate-500">
-            {loginMode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
-            <button 
-              onClick={() => setLoginMode(loginMode === 'login' ? 'signup' : 'login')}
-              className="text-primary font-semibold hover:underline"
-            >
-              {loginMode === 'login' ? 'Sign up' : 'Log in'}
-            </button>
-          </p>
+          <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
+            <p className="text-xs text-slate-400">© 2024 {companySettings.companyName}. All rights reserved.</p>
+          </div>
         </motion.div>
+        <Toaster />
       </div>
     );
   }
-
-  const role = userProfile?.role || 'employee';
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'hr', 'manager', 'employee'] },

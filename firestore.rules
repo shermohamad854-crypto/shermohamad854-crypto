@@ -24,34 +24,36 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function getUserData(uid) {
-      return exists(/databases/$(database)/documents/users/$(uid)) 
-        ? get(/databases/$(database)/documents/users/$(uid)).data 
-        : null;
+    function isDefaultAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email == "shermohamad854@gmail.com" && 
+             request.auth.token.email_verified == true;
     }
 
-    function isDefaultAdmin() {
-      return request.auth.token.email == "shermohamad854@gmail.com" && request.auth.token.email_verified == true;
+    function getUserRole() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : 'employee';
     }
 
     function isAdmin() {
       return isAuthenticated() && (
         isDefaultAdmin() || 
-        (getUserData(request.auth.uid) != null && getUserData(request.auth.uid).role == 'admin')
+        getUserRole() == 'admin'
       );
     }
 
     function isHR() {
       return isAuthenticated() && (
         isDefaultAdmin() || 
-        (getUserData(request.auth.uid) != null && (getUserData(request.auth.uid).role == 'hr' || getUserData(request.auth.uid).role == 'admin'))
+        getUserRole() in ['hr', 'admin']
       );
     }
 
     function isManager() {
       return isAuthenticated() && (
         isDefaultAdmin() || 
-        (getUserData(request.auth.uid) != null && (getUserData(request.auth.uid).role == 'manager' || getUserData(request.auth.uid).role == 'hr' || getUserData(request.auth.uid).role == 'admin'))
+        getUserRole() in ['manager', 'hr', 'admin']
       );
     }
 
@@ -69,43 +71,45 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Employees: HR and Admins can read/write. Managers can read.
+    // Employees: Authenticated read. HR and Admins can write.
     match /employees/{employeeId} {
-      allow read: if isManager() || (isAuthenticated() && request.auth.token.email == resource.data.email);
+      allow read: if isAuthenticated();
       allow write: if isHR();
     }
 
-    // Attendance: HR and Admins can read/write. Managers can read. Users can read/write their own.
+    // Attendance: Authenticated read. HR and Admins can write. Users can write their own.
     match /attendance/{attendanceId} {
-      allow read: if isManager() || (isAuthenticated() && (resource.data.employeeId == request.auth.uid || request.resource.data.employeeId == request.auth.uid));
+      allow read: if isAuthenticated();
       allow write: if isHR() || (isAuthenticated() && request.resource.data.employeeId == request.auth.uid);
     }
 
-    // Payroll: HR and Admins can read/write. Users can read their own.
+    // Payroll: HR and Admins can read/write. Users can read their own. (Keep sensitive)
     match /payroll/{payrollId} {
       allow read: if isHR() || (isAuthenticated() && resource.data.employeeId == request.auth.uid);
       allow write: if isHR();
     }
 
-    // Tasks: Admins/Managers can read/write. Users can read/write tasks assigned to them.
+    // Tasks: Authenticated read. Admins/Managers can write.
     match /tasks/{taskId} {
-      allow read, write: if isManager() || (isAuthenticated() && (resource.data.assignedTo == request.auth.uid || request.resource.data.assignedTo == request.auth.uid));
+      allow read: if isAuthenticated();
+      allow write: if isManager() || (isAuthenticated() && (resource.data.assignedTo == request.auth.uid || request.resource.data.assignedTo == request.auth.uid));
     }
 
-    // Inventory: Admins can read/write all. Authenticated users can read.
+    // Inventory: Authenticated read. Admins can write.
     match /inventory/{itemId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Vehicles: Admins/Managers can read/write.
+    // Vehicles: Authenticated read. Admins/Managers can write.
     match /vehicles/{vehicleId} {
-      allow read, write: if isManager();
+      allow read: if isAuthenticated();
+      allow write: if isManager();
     }
 
-    // Settings: Admins can read/write. Authenticated users can read. general is public for branding.
+    // Settings: Authenticated read. Admins can write.
     match /settings/{settingId} {
-      allow read: if isAuthenticated() || settingId == 'general';
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
   }

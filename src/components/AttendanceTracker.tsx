@@ -19,7 +19,11 @@ export default function AttendanceTracker() {
     const empUnsubscribe = onSnapshot(collection(db, 'employees'), (snapshot) => {
       setEmployees(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'employees');
+      if (error.code === 'permission-denied') {
+        console.warn("Permission denied fetching employees for attendance");
+      } else {
+        handleFirestoreError(error, OperationType.LIST, 'employees');
+      }
     });
 
     const attQuery = query(collection(db, 'attendance'), where('date', '==', today));
@@ -27,7 +31,12 @@ export default function AttendanceTracker() {
       setAttendance(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance)));
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'attendance');
+      if (error.code === 'permission-denied') {
+        console.warn("Permission denied fetching attendance records");
+        setLoading(false);
+      } else {
+        handleFirestoreError(error, OperationType.LIST, 'attendance');
+      }
     });
 
     return () => {

@@ -24,7 +24,8 @@ import {
   Eye, 
   FileText,
   CheckCircle2,
-  Mail
+  Mail,
+  Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,7 +47,11 @@ export default function PayrollManager() {
     const empUnsubscribe = onSnapshot(collection(db, 'employees'), (snapshot) => {
       setEmployees(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'employees');
+      if (error.code === 'permission-denied') {
+        console.warn("Permission denied fetching employees for payroll");
+      } else {
+        handleFirestoreError(error, OperationType.LIST, 'employees');
+      }
     });
 
     const payrollQuery = query(collection(db, 'payroll'), orderBy('year', 'desc'), orderBy('month', 'desc'));
@@ -54,7 +59,12 @@ export default function PayrollManager() {
       setPayrollHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payroll)));
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'payroll');
+      if (error.code === 'permission-denied') {
+        console.warn("Permission denied fetching payroll history");
+        setLoading(false);
+      } else {
+        handleFirestoreError(error, OperationType.LIST, 'payroll');
+      }
     });
 
     const settingsUnsub = onSnapshot(doc(db, 'settings', 'general'), (doc) => {
@@ -62,7 +72,8 @@ export default function PayrollManager() {
         setCompanyName(doc.data().companyName || 'Nexus HRM Solutions');
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'settings/general');
+      // Settings might be restricted, but general branding should be public
+      // If it fails, we just keep defaults
     });
 
     return () => {

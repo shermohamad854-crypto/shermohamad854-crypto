@@ -116,54 +116,54 @@ export default function InventoryManager() {
             <Plus className="mr-2 w-4 h-4" /> Add Item
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Inventory Item</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>Item Name</Label>
-                <Input 
-                  value={newItem.name || ''} 
-                  onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              <DialogHeader>
+                <DialogTitle>Add Inventory Item</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label>Category</Label>
+                  <Label>Item Name</Label>
                   <Input 
-                    value={newItem.category || ''} 
-                    onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                    value={newItem.name || ''} 
+                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Category</Label>
+                    <Input 
+                      value={newItem.category || ''} 
+                      onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Quantity</Label>
+                    <Input 
+                      type="number"
+                      value={newItem.quantity || 1} 
+                      onChange={(e) => setNewItem({...newItem, quantity: Number(e.target.value)})}
+                    />
+                  </div>
+                </div>
                 <div className="grid gap-2">
-                  <Label>Quantity</Label>
-                  <Input 
-                    type="number"
-                    value={newItem.quantity || 1} 
-                    onChange={(e) => setNewItem({...newItem, quantity: Number(e.target.value)})}
-                  />
+                  <Label>Status</Label>
+                  <Select onValueChange={(v: any) => setNewItem({...newItem, status: v})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="assigned">Assigned</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                      <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label>Status</Label>
-                <Select onValueChange={(v: any) => setNewItem({...newItem, status: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="out-of-stock">Out of Stock</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleAddItem}>Save Item</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button onClick={handleAddItem}>Save Item</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
@@ -306,17 +306,15 @@ export default function InventoryManager() {
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Dialog>
-                        <DialogTrigger 
-                          render={
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-slate-400 hover:text-red-500"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          }
-                        />
+                        <DialogTrigger render={
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-slate-400 hover:text-red-500"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        } />
                         <DialogContent>
                           <DialogHeader>
                             <DialogTitle>Delete Item</DialogTitle>
@@ -325,9 +323,7 @@ export default function InventoryManager() {
                             Are you sure you want to delete <strong>{item.name}</strong>?
                           </p>
                           <DialogFooter>
-                            <DialogClose render={<Button variant="outline" />}>
-                              Cancel
-                            </DialogClose>
+                            <DialogClose render={<Button variant="outline">Cancel</Button>} />
                             <Button variant="destructive" onClick={() => deleteItem(item.id)}>Delete</Button>
                           </DialogFooter>
                         </DialogContent>

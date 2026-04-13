@@ -34,7 +34,8 @@ import {
   DialogTitle, 
   DialogDescription,
   DialogFooter,
-  DialogTrigger
+  DialogTrigger,
+  DialogClose
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { toast } from 'sonner';
@@ -62,6 +63,13 @@ export default function UserAccessManager() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile)));
       setLoading(false);
+    }, (error) => {
+      if (error.code === 'permission-denied') {
+        console.warn("Permission denied fetching users list");
+        setLoading(false);
+      } else {
+        console.error("Users listener error:", error);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -120,13 +128,11 @@ export default function UserAccessManager() {
   };
 
   const deleteUserAccess = async (userId: string) => {
-    if (confirm('Are you sure you want to remove this user\'s access?')) {
-      try {
-        await deleteDoc(doc(db, 'users', userId));
-        toast.success('User access removed');
-      } catch (error) {
-        toast.error('Failed to remove access');
-      }
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+      toast.success('User access removed');
+    } catch (error) {
+      toast.error('Failed to remove access');
     }
   };
 
@@ -286,14 +292,29 @@ export default function UserAccessManager() {
                   </Select>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => deleteUserAccess(user.id)}
-                    className="text-slate-300 hover:text-rose-500"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger render={
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-slate-300 hover:text-rose-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    } />
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Remove User Access</DialogTitle>
+                      </DialogHeader>
+                      <p className="py-4 text-slate-600">
+                        Are you sure you want to remove access for <strong>{user.displayName || user.email}</strong>?
+                      </p>
+                      <DialogFooter>
+                        <DialogClose render={<Button variant="outline">Cancel</Button>} />
+                        <Button variant="destructive" onClick={() => deleteUserAccess(user.id)}>Remove Access</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </TableCell>
               </TableRow>
             ))}

@@ -34,31 +34,34 @@ export default function DashboardOverview({ role }: DashboardOverviewProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const isManagerPlus = ['admin', 'hr', 'manager'].includes(role);
-
-    if (!isManagerPlus) {
-      setLoading(false);
-      return;
-    }
-
     const empUnsubscribe = onSnapshot(collection(db, 'employees'), (snapshot) => {
       setEmployees(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'employees');
+      // If it's a permission error, we just show empty
+      if (error.code === 'permission-denied') {
+        console.warn("Permission denied fetching employees for dashboard");
+      } else {
+        handleFirestoreError(error, OperationType.LIST, 'employees');
+      }
     });
 
     const attUnsubscribe = onSnapshot(query(collection(db, 'attendance'), limit(100)), (snapshot) => {
       setAttendance(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance)));
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'attendance');
+      if (error.code === 'permission-denied') {
+        console.warn("Permission denied fetching attendance for dashboard");
+        setLoading(false);
+      } else {
+        handleFirestoreError(error, OperationType.LIST, 'attendance');
+      }
     });
 
     return () => {
       empUnsubscribe();
       attUnsubscribe();
     };
-  }, [role]);
+  }, []);
 
   const stats = [
     { 

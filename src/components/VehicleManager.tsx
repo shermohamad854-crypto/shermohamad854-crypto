@@ -218,141 +218,141 @@ export default function VehicleManager() {
           <DialogTrigger render={<Button className="h-11 px-6" />}>
             <Plus className="mr-2 w-4 h-4" /> Add Vehicle
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Vehicle</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-6 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="vNumber">Vehicle Number</Label>
-                  <Input 
-                    id="vNumber" 
-                    placeholder="e.g. ABC-1234" 
-                    value={newVehicle.vehicleNumber || ''}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, vehicleNumber: e.target.value })}
-                  />
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Vehicle</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-6 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="vNumber">Vehicle Number</Label>
+                    <Input 
+                      id="vNumber" 
+                      placeholder="e.g. ABC-1234" 
+                      value={newVehicle.vehicleNumber || ''}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, vehicleNumber: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="vName">Vehicle Name</Label>
+                    <Input 
+                      id="vName" 
+                      placeholder="e.g. Toyota Hilux" 
+                      value={newVehicle.vehicleName || ''}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, vehicleName: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vName">Vehicle Name</Label>
-                  <Input 
-                    id="vName" 
-                    placeholder="e.g. Toyota Hilux" 
-                    value={newVehicle.vehicleName || ''}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, vehicleName: e.target.value })}
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dName">Driver Name</Label>
-                  <Input 
-                    id="dName" 
-                    placeholder="Full Name" 
-                    value={newVehicle.driverName || ''}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, driverName: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dName">Driver Name</Label>
+                    <Input 
+                      id="dName" 
+                      placeholder="Full Name" 
+                      value={newVehicle.driverName || ''}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, driverName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dContact">Driver Contact</Label>
+                    <Input 
+                      id="dContact" 
+                      placeholder="Phone Number" 
+                      value={newVehicle.driverContact || ''}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, driverContact: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dContact">Driver Contact</Label>
-                  <Input 
-                    id="dContact" 
-                    placeholder="Phone Number" 
-                    value={newVehicle.driverContact || ''}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, driverContact: e.target.value })}
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="aDate">Assignment Date</Label>
-                  <Input 
-                    id="aDate" 
-                    type="date" 
-                    value={newVehicle.assignmentDate || ''}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, assignmentDate: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="aDate">Assignment Date</Label>
+                    <Input 
+                      id="aDate" 
+                      type="date" 
+                      value={newVehicle.assignmentDate || ''}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, assignmentDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hDate">Handover Date (Optional)</Label>
+                    <Input 
+                      id="hDate" 
+                      type="date" 
+                      value={newVehicle.handoverDate || ''}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, handoverDate: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="hDate">Handover Date (Optional)</Label>
-                  <Input 
-                    id="hDate" 
-                    type="date" 
-                    value={newVehicle.handoverDate || ''}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, handoverDate: e.target.value })}
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="appBy">Approved By</Label>
-                  <Input 
-                    id="appBy" 
-                    placeholder="Person Name" 
-                    value={newVehicle.approvedBy || ''}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, approvedBy: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="appBy">Approved By</Label>
+                    <Input 
+                      id="appBy" 
+                      placeholder="Person Name" 
+                      value={newVehicle.approvedBy || ''}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, approvedBy: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select 
+                      value={newVehicle.status} 
+                      onValueChange={(v: any) => setNewVehicle({ ...newVehicle, status: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="maintenance">Maintenance</SelectItem>
+                        <SelectItem value="retired">Retired</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select 
-                    value={newVehicle.status} 
-                    onValueChange={(v: any) => setNewVehicle({ ...newVehicle, status: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                      <SelectItem value="retired">Retired</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>NOC Document</Label>
-                <div className="flex flex-col gap-3">
-                  {newVehicle.nocUrl ? (
-                    <div className="relative w-full h-32 bg-slate-50 rounded-lg border border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
-                      {newVehicle.nocUrl.startsWith('data:image') ? (
-                        <img src={newVehicle.nocUrl} alt="NOC" className="w-full h-full object-contain" />
-                      ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          <FileText className="w-8 h-8 text-primary" />
-                          <span className="text-xs text-slate-500">Document Uploaded</span>
-                        </div>
-                      )}
-                      <button 
-                        onClick={() => setNewVehicle({ ...newVehicle, nocUrl: undefined })}
-                        className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:text-destructive transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="w-full h-32 bg-slate-50 rounded-lg border border-dashed border-slate-300 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors">
-                      <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                      <span className="text-sm text-slate-600 font-medium">Click to upload NOC</span>
-                      <span className="text-xs text-slate-400 mt-1">PDF or Image (Max 1MB)</span>
-                      <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} />
-                    </label>
-                  )}
+                <div className="space-y-2">
+                  <Label>NOC Document</Label>
+                  <div className="flex flex-col gap-3">
+                    {newVehicle.nocUrl ? (
+                      <div className="relative w-full h-32 bg-slate-50 rounded-lg border border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
+                        {newVehicle.nocUrl.startsWith('data:image') ? (
+                          <img src={newVehicle.nocUrl} alt="NOC" className="w-full h-full object-contain" />
+                        ) : (
+                          <div className="flex flex-col items-center gap-2">
+                            <FileText className="w-8 h-8 text-primary" />
+                            <span className="text-xs text-slate-500">Document Uploaded</span>
+                          </div>
+                        )}
+                        <button 
+                          onClick={() => setNewVehicle({ ...newVehicle, nocUrl: undefined })}
+                          className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:text-destructive transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="w-full h-32 bg-slate-50 rounded-lg border border-dashed border-slate-300 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors">
+                        <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                        <span className="text-sm text-slate-600 font-medium">Click to upload NOC</span>
+                        <span className="text-xs text-slate-400 mt-1">PDF or Image (Max 1MB)</span>
+                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} />
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddVehicle} disabled={isSubmitting}>
-                {isSubmitting ? 'Adding...' : 'Add Vehicle'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleAddVehicle} disabled={isSubmitting}>
+                  {isSubmitting ? 'Adding...' : 'Add Vehicle'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-[600px]">
@@ -609,17 +609,15 @@ export default function VehicleManager() {
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Dialog>
-                          <DialogTrigger 
-                            render={
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="text-slate-400 hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            }
-                          />
+                          <DialogTrigger render={
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-slate-400 hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          } />
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Delete Vehicle</DialogTitle>
@@ -628,9 +626,7 @@ export default function VehicleManager() {
                               Are you sure you want to delete vehicle <strong>{v.vehicleNumber}</strong>? This action cannot be undone.
                             </p>
                             <DialogFooter>
-                              <DialogClose render={<Button variant="outline" />}>
-                                Cancel
-                              </DialogClose>
+                              <DialogClose render={<Button variant="outline">Cancel</Button>} />
                               <Button variant="destructive" onClick={() => handleDeleteVehicle(v.id)}>Delete</Button>
                             </DialogFooter>
                           </DialogContent>

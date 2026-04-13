@@ -125,60 +125,60 @@ export default function TaskManager() {
           <DialogTrigger render={<Button className="h-11" />}>
             <Plus className="mr-2 w-4 h-4" /> New Task
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Assign New Task</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>Title</Label>
-                <Input 
-                  value={newTask.title || ''} 
-                  onChange={(e) => setNewTask({...newTask, title: e.target.value})}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Assigned To</Label>
-                <Select onValueChange={(v: string) => setNewTask({...newTask, assignedTo: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map(emp => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Assign New Task</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label>Priority</Label>
-                  <Select onValueChange={(v: any) => setNewTask({...newTask, priority: v})}>
+                  <Label>Title</Label>
+                  <Input 
+                    value={newTask.title || ''} 
+                    onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Assigned To</Label>
+                  <Select onValueChange={(v: string) => setNewTask({...newTask, assignedTo: v})}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Priority" />
+                      <SelectValue placeholder="Select employee" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      {employees.map(emp => (
+                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Due Date</Label>
-                  <Input 
-                    type="date" 
-                    value={newTask.dueDate || ''} 
-                    onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Priority</Label>
+                    <Select onValueChange={(v: any) => setNewTask({...newTask, priority: v})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Due Date</Label>
+                    <Input 
+                      type="date" 
+                      value={newTask.dueDate || ''} 
+                      onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleAddTask}>Create Task</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button onClick={handleAddTask}>Create Task</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
@@ -310,17 +310,15 @@ export default function TaskManager() {
                             <Edit className="w-3.5 h-3.5" />
                           </Button>
                           <Dialog>
-                            <DialogTrigger 
-                              render={
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-7 w-7 text-slate-300 hover:text-rose-500 transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              }
-                            />
+                            <DialogTrigger render={
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 text-slate-300 hover:text-rose-500 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            } />
                             <DialogContent>
                               <DialogHeader>
                                 <DialogTitle>Delete Task</DialogTitle>
@@ -329,9 +327,7 @@ export default function TaskManager() {
                                 Are you sure you want to delete this task?
                               </p>
                               <DialogFooter>
-                                <DialogClose render={<Button variant="outline" />}>
-                                  Cancel
-                                </DialogClose>
+                                <DialogClose render={<Button variant="outline">Cancel</Button>} />
                                 <Button variant="destructive" onClick={() => deleteTask(task.id)}>Delete</Button>
                               </DialogFooter>
                             </DialogContent>
